@@ -333,7 +333,7 @@ BOOST_FIXTURE_TEST_CASE(rbf_helper_functions, TestChain100Setup)
     const auto grand_child_tx = add_descendants(child_tx, 1, pool);
     const auto entry10_grand_child = pool.GetIter(grand_child_tx->GetHash()).value();
     BOOST_CHECK_EQUAL(pool.CheckConflictTopology({entry9_unchained, entry10_unchained, entry11_unchained}).value(), strprintf("%s has 2 descendants, max 1 allowed", entry10_unchained->GetSharedTx()->GetHash().ToString()));
-    // even if direct conflict is descendent itself
+    // even if direct conflict is descendant itself
     BOOST_CHECK_EQUAL(pool.CheckConflictTopology({entry9_unchained, entry10_grand_child, entry11_unchained}).value(), strprintf("%s has 2 ancestors, max 1 allowed", entry10_grand_child->GetSharedTx()->GetHash().ToString()));
 
     // Make a single child from two singleton parents
