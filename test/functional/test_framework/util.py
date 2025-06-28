@@ -168,8 +168,7 @@ def try_rpc(code, message, fun, *args, **kwds):
             raise AssertionError("Unexpected JSONRPC error code %i" % e.error["code"])
         if (message is not None) and (message not in e.error['message']):
             raise AssertionError(
-                "Expected substring not found in error message:\nsubstring: '{}'\nerror message: '{}'.".format(
-                    message, e.error['message']))
+                f"Expected substring not found in error message:\nsubstring: '{message}'\nerror message: '{e.error['message']}'.")
         return True
     except Exception as e:
         raise AssertionError("Unexpected exception raised: " + type(e).__name__)
@@ -317,8 +316,8 @@ def wait_until_helper_internal(predicate, *, timeout=60, lock=None, timeout_fact
 
     # Print the cause of the timeout
     predicate_source = "''''\n" + inspect.getsource(predicate) + "'''"
-    logger.error("wait_until() failed. Predicate: {}".format(predicate_source))
-    raise AssertionError("Predicate {} not true after {} seconds".format(predicate_source, timeout))
+    logger.error("wait_until() failed. Predicate: %s", predicate_source)
+    raise AssertionError(f"Predicate {predicate_source} not true after {timeout} seconds")
 
 
 def bpf_cflags():
