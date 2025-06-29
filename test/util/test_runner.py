@@ -121,13 +121,7 @@ def bctest(test_dir, test_obj, buildenv):
         # Parse command output and expected output
         try:
             a_parsed = parse_output(res.stdout, output_type)
-        except Exception as e:  # pylint: disable=broad-except
-            logging.error("Error parsing command output as %s: '%s'; res: %s", output_type, str(e), str(res))
-            raise
-        try:
-            b_parsed = parse_output(output_data, output_type)
-        except Exception as e:  # pylint: disable=broad-except
-            logging.error("Error parsing expected output %s as %s: %s", output_fn, output_type, e)
+
             raise
         # Compare data
         if a_parsed != b_parsed:
