@@ -44,6 +44,9 @@ Command Line Tools
 ### [Completions](/contrib/completions) ###
 Shell completions for bash and fish.
 
+### [Transcode Utility](/contrib/transcode.py) ###
+Convert data between hex and base64 encodings.
+
 UTXO Set Tools
 --------------
 

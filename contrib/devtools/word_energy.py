@@ -14,7 +14,10 @@ from __future__ import annotations
 import argparse
 import string
 
-ALPHABET = {letter: idx + 1 for idx, letter in enumerate(string.ascii_lowercase)}
+ALPHABET = {
+    letter: idx + 1
+    for idx, letter in enumerate(string.ascii_lowercase)
+}
 
 
 def word_energy(word: str) -> int:

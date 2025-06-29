@@ -14,7 +14,7 @@ The **Monad**, also known as the **Circumpunct (⊙)**, is the most elemental sy
 - **Dot (·):** Singular essence; identity; Logos seed  
 - **Circle (◯):** Total field; potential; Logos field  
 
-**Equation**:
+
 ```
 ⊙ = Point + Perimeter
 = Identity + Enclosure

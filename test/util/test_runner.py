@@ -41,22 +41,22 @@ def main():
 
     bctester(os.path.join(env_conf["SRCDIR"], "test", "util", "data"), "bitcoin-util-test.json", env_conf)
 
-def bctester(testDir, input_basename, buildenv):
+def bctester(test_dir, input_basename, buildenv):
     """ Loads and parses the input file, runs all tests and reports results"""
-    input_filename = os.path.join(testDir, input_basename)
+    input_filename = os.path.join(test_dir, input_basename)
     with open(input_filename, encoding="utf8") as f:
         raw_data = f.read()
     input_data = json.loads(raw_data)
 
     failed_testcases = []
 
-    for testObj in input_data:
+    for test_obj in input_data:
         try:
-            bctest(testDir, testObj, buildenv)
-            logging.info("PASSED: " + testObj["description"])
-        except Exception:
-            logging.info("FAILED: " + testObj["description"])
-            failed_testcases.append(testObj["description"])
+            bctest(test_dir, test_obj, buildenv)
+            logging.info("PASSED: %s", test_obj["description"])
+        except Exception:  # pylint: disable=broad-except
+            logging.info("FAILED: %s", test_obj["description"])
+            failed_testcases.append(test_obj["description"])
 
     if failed_testcases:
         error_message = "FAILED_TESTCASES:\n"
@@ -66,79 +66,79 @@ def bctester(testDir, input_basename, buildenv):
     else:
         sys.exit(0)
 
-def bctest(testDir, testObj, buildenv):
+def bctest(test_dir, test_obj, buildenv):
     """Runs a single test, comparing output and RC to expected output and RC.
 
     Raises an error if input can't be read, executable fails, or output/RC
     are not as expected. Error is caught by bctester() and reported.
     """
     # Get the exec names and arguments
-    execprog = os.path.join(buildenv["BUILDDIR"], "bin", testObj["exec"] + buildenv["EXEEXT"])
-    if testObj["exec"] == "./bitcoin-util":
+    execprog = os.path.join(buildenv["BUILDDIR"], "bin", test_obj["exec"] + buildenv["EXEEXT"])
+    if test_obj["exec"] == "./bitcoin-util":
         execprog = os.getenv("BITCOINUTIL", default=execprog)
-    elif testObj["exec"] == "./bitcoin-tx":
+    elif test_obj["exec"] == "./bitcoin-tx":
         execprog = os.getenv("BITCOINTX", default=execprog)
 
-    execargs = testObj['args']
+    execargs = test_obj['args']
     execrun = [execprog] + execargs
 
     # Read the input data (if there is any)
-    inputData = None
-    if "input" in testObj:
-        filename = os.path.join(testDir, testObj["input"])
+    input_data = None
+    if "input" in test_obj:
+        filename = os.path.join(test_dir, test_obj["input"])
         with open(filename, encoding="utf8") as f:
-            inputData = f.read()
+            input_data = f.read()
 
     # Read the expected output data (if there is any)
-    outputFn = None
-    outputData = None
-    outputType = None
-    if "output_cmp" in testObj:
-        outputFn = testObj['output_cmp']
-        outputType = os.path.splitext(outputFn)[1][1:]  # output type from file extension (determines how to compare)
+    output_fn = None
+    output_data = None
+    output_type = None
+    if "output_cmp" in test_obj:
+        output_fn = test_obj['output_cmp']
+        output_type = os.path.splitext(output_fn)[1][1:]  # output type from file extension (determines how to compare)
         try:
-            with open(os.path.join(testDir, outputFn), encoding="utf8") as f:
-                outputData = f.read()
-        except Exception:
-            logging.error("Output file " + outputFn + " cannot be opened")
+            with open(os.path.join(test_dir, output_fn), encoding="utf8") as f:
+                output_data = f.read()
+        except OSError:
+            logging.error("Output file %s cannot be opened", output_fn)
             raise
-        if not outputData:
-            logging.error("Output data missing for " + outputFn)
+        if not output_data:
+            logging.error("Output data missing for %s", output_fn)
             raise Exception
-        if not outputType:
-            logging.error("Output file %s does not have a file extension" % outputFn)
+        if not output_type:
+            logging.error("Output file %s does not have a file extension", output_fn)
             raise Exception
 
     # Run the test
     try:
-        res = subprocess.run(execrun, capture_output=True, text=True, input=inputData)
+        res = subprocess.run(execrun, capture_output=True, text=True, input=input_data)
     except OSError:
-        logging.error("OSError, Failed to execute " + execprog)
+        logging.error("OSError, Failed to execute %s", execprog)
         raise
 
-    if outputData:
+    if output_data:
         data_mismatch, formatting_mismatch = False, False
         # Parse command output and expected output
         try:
-            a_parsed = parse_output(res.stdout, outputType)
-        except Exception as e:
-            logging.error(f"Error parsing command output as {outputType}: '{str(e)}'; res: {str(res)}")
+            a_parsed = parse_output(res.stdout, output_type)
+
+            logging.error("Error parsing command output as %s: '%s'; res: %s", output_type, str(e), str(res))
             raise
         try:
-            b_parsed = parse_output(outputData, outputType)
-        except Exception as e:
-            logging.error('Error parsing expected output %s as %s: %s' % (outputFn, outputType, e))
+            b_parsed = parse_output(output_data, output_type)
+
+            logging.error("Error parsing expected output %s as %s: %s", output_fn, output_type, e)
             raise
         # Compare data
         if a_parsed != b_parsed:
-            logging.error(f"Output data mismatch for {outputFn} (format {outputType}); res: {str(res)}")
+            logging.error("Output data mismatch for %s (format %s); res: %s", output_fn, output_type, str(res))
             data_mismatch = True
         # Compare formatting
-        if res.stdout != outputData:
-            error_message = f"Output formatting mismatch for {outputFn}:\nres: {str(res)}\n"
-            error_message += "".join(difflib.context_diff(outputData.splitlines(True),
+        if res.stdout != output_data:
+            error_message = f"Output formatting mismatch for {output_fn}:\nres: {str(res)}\n"
+            error_message += "".join(difflib.context_diff(output_data.splitlines(True),
                                                           res.stdout.splitlines(True),
-                                                          fromfile=outputFn,
+                                                          fromfile=output_fn,
                                                           tofile="returned"))
             logging.error(error_message)
             formatting_mismatch = True
@@ -146,24 +146,24 @@ def bctest(testDir, testObj, buildenv):
         assert not data_mismatch and not formatting_mismatch
 
     # Compare the return code to the expected return code
-    wantRC = 0
-    if "return_code" in testObj:
-        wantRC = testObj['return_code']
-    if res.returncode != wantRC:
-        logging.error(f"Return code mismatch for {outputFn}; res: {str(res)}")
-        raise Exception
+    want_rc = 0
+    if "return_code" in test_obj:
+        want_rc = test_obj['return_code']
+    if res.returncode != want_rc:
+        logging.error("Return code mismatch for %s; res: %s", output_fn, str(res))
+        raise RuntimeError("Return code mismatch")
 
-    if "error_txt" in testObj:
-        want_error = testObj["error_txt"]
+    if "error_txt" in test_obj:
+        want_error = test_obj["error_txt"]
         # A partial match instead of an exact match makes writing tests easier
         # and should be sufficient.
         if want_error not in res.stderr:
-            logging.error(f"Error mismatch:\nExpected: {want_error}\nReceived: {res.stderr.rstrip()}\nres: {str(res)}")
-            raise Exception
+            logging.error("Error mismatch:\nExpected: %s\nReceived: %s\nres: %s", want_error, res.stderr.rstrip(), str(res))
+            raise RuntimeError("Error mismatch")
     else:
         if res.stderr:
-            logging.error(f"Unexpected error received: {res.stderr.rstrip()}\nres: {str(res)}")
-            raise Exception
+            logging.error("Unexpected error received: %s\nres: %s", res.stderr.rstrip(), str(res))
+            raise RuntimeError("Unexpected error")
 
 
 def parse_output(a, fmt):
