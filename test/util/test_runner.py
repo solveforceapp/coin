@@ -121,17 +121,34 @@ def bctest(test_dir, test_obj, buildenv):
         # Parse command output and expected output
         try:
             a_parsed = parse_output(res.stdout, output_type)
-
-            logging.error("Error parsing command output as %s: '%s'; res: %s", output_type, str(e), str(res))
+        except (ValueError, NotImplementedError) as e:
+            logging.error(
+                "Error parsing command output as %s: '%s'; res: %s",
+                output_type,
+                str(e),
+                str(res),
+            )
             raise
         try:
             b_parsed = parse_output(output_data, output_type)
-
-            logging.error("Error parsing expected output %s as %s: %s", output_fn, output_type, e)
+        except (ValueError, NotImplementedError) as e:
+            logging.error(
+                "Error parsing expected output %s as %s: %s",
+                output_fn,
+                output_type,
+                e,
+            )
             raise
-        # Compare data
-        if a_parsed != b_parsed:
-            logging.error("Output data mismatch for %s (format %s); res: %s", output_fn, output_type, str(res))
+        # Compare data using format-aware comparison
+        if not compare_parsed(a_parsed, b_parsed, output_type):
+            logging.error(
+                "Output data mismatch for %s (format %s); res: %s",
+                output_fn,
+                output_type,
+                str(res),
+            )
+            logging.debug("a_parsed: %s", a_parsed)
+            logging.debug("b_parsed: %s", b_parsed)
             data_mismatch = True
         # Compare formatting
         if res.stdout != output_data:
@@ -176,6 +193,15 @@ def parse_output(a, fmt):
         return bytes.fromhex(a.strip())
     else:
         raise NotImplementedError("Don't know how to compare %s" % fmt)
+
+
+def compare_parsed(a, b, fmt):
+    """Return True if the parsed outputs are equivalent."""
+    if fmt == 'json':
+        return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+    if isinstance(a, list) and isinstance(b, list):
+        return sorted(a) == sorted(b)
+    return a == b
 
 if __name__ == '__main__':
     main()
