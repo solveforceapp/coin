@@ -112,8 +112,12 @@ def bctest(test_dir, test_obj, buildenv):
     # Run the test
     try:
         res = subprocess.run(execrun, capture_output=True, text=True, input=input_data)
-    except OSError:
-        logging.error("OSError, Failed to execute %s", execprog)
+    except OSError as e:
+        logging.error("OSError, Failed to execute %s: %s", execprog, e)
+        raise
+    except Exception as e:  # pylint: disable=broad-except
+        logging.error("Unexpected error running %s: %s", execprog, e)
+        traceback.print_exc()
         raise
 
     if output_data:
